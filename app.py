@@ -2,104 +2,140 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-# 1. Page Configuration
-st.set_page_config(page_title="USDA Analysis", page_icon="📊", layout="wide")
+st.set_page_config(
+    page_title="USDA Multi-Commodity Dashboard", page_icon="🌾", layout="wide"
+)
 
-st.title("🌾 USDA Sales and Production Analysis")
+st.title("🌾 USDA Agricultural Production & Sales Analysis")
+st.markdown("Interactive multi-commodity data analysis portal using USDA public datasets.")
 st.markdown("---")
 
+st.sidebar.header("🛠️ Dashboard Control Panel")
+commodity_selected = st.sidebar.selectbox(
+    "Select Commodity to Analyze:", ["Milk", "Honey", "Yogurt", "Eggs"]
+)
+
+commodity_mapping = {
+    "Milk": {
+        "file": "data/top_5_milk_producers.csv",
+        "value_col": "total_milk",
+        "title": "Milk Production Volume",
+        "color": "#1f77b4",  # Biru
+        "insight": "Based on the USDA analysis, Iowa (ANSI 19) leads total milk production, followed closely by Pennsylvania (ANSI 42).",
+    },
+    "Honey": {
+        "file": "data/top_5_honey_producers.csv", 
+        "value_col": "total_honey",  
+        "title": "Honey Production Volume",
+        "color": "#ffc107",  # Kuning Madu
+        "insight": "Honey production shows high regional specialization, dominated heavily by North Dakota and South Dakota due to optimal foraging landscapes.",
+    },
+    "Yogurt": {
+        "file": "data/top_5_yogurt_producers.csv",
+        "value_col": "total_yogurt",
+        "title": "Yogurt Production Volume",
+        "color": "#e83e8c",  # Merah Muda/Pink Yogurt
+        "insight": "Yogurt production is highly centralized near major urban supply chains, with New York leading significant manufacturing capabilities.",
+    },
+    "Eggs": {
+        "file": "data/top_5_egg_producers.csv",
+        "value_col": "total_eggs",
+        "title": "Egg Production Volume",
+        "color": "#fd7e14",  # Oranye Telur
+        "insight": "Iowa holds a massive market lead in egg production, driven by large-scale commercial poultry operations and local feed availability.",
+    },
+}
+
+current_config = commodity_mapping[commodity_selected]
+
 try:
-    # 2. Data Loading & Cleaning
-    df = pd.read_csv("data/top_5_milk_producers.csv")
+    
+    df = pd.read_csv(current_config["file"])
     df.columns = df.columns.str.strip()
 
-    if "total_milk" in df.columns:
-        df["total_milk"] = (
-            df["total_milk"]
-            .astype(str)
-            .str.replace(",", "")
-            .astype(float)
-        )
+    val_col = current_config["value_col"]
 
-    # ========================================================
-    # NEW: HIGH-LEVEL KPI CARDS (Diletakkan di paling atas)
-    # ========================================================
-    # Cari nilai tertinggi dan total produksi dari dataset
-    df_sorted_desc = df.sort_values(by="total_milk", ascending=False)
+    if val_col not in df.columns:
+    
+        val_col = df.columns[-1]
+
+    df[val_col] = df[val_col].astype(str).str.replace(",", "").astype(float)
+
+    df_sorted_desc = df.sort_values(by=val_col, ascending=False)
     top_state_ansi = df_sorted_desc.iloc[0]["State_ANSI"]
-    top_state_val = df_sorted_desc.iloc[0]["total_milk"]
-    total_production_all = df["total_milk"].sum()
+    top_state_val = df_sorted_desc.iloc[0][val_col]
+    total_production_all = df[val_col].sum()
 
     kpi1, kpi2, kpi3 = st.columns(3)
     with kpi1:
-        st.metric(label="🏆 Market Leader (ANSI)", value=str(top_state_ansi))
+        st.metric(
+            label=f"🏆 Top {commodity_selected} Producer (ANSI)",
+            value=str(top_state_ansi),
+        )
     with kpi2:
-        st.metric(label="🚀 Highest Production Volume", value=f"{top_state_val*1e-9:.1f}B")
+        st.metric(
+            label="🚀 Highest Volume Registered",
+            value=f"{top_state_val*1e-9:.1f}B"
+            if top_state_val > 1e9
+            else f"{top_state_val:,.0f}",
+        )
     with kpi3:
-        st.metric(label="📈 Combined Top 5 Production", value=f"{total_production_all*1e-9:.1f}B")
-        
+        st.metric(
+            label=f"📈 Combined Top 5 {commodity_selected}",
+            value=f"{total_production_all*1e-9:.1f}B"
+            if total_production_all > 1e9
+            else f"{total_production_all:,.0f}",
+        )
+
     st.markdown("---")
 
-    # ========================================================
-    # NEW: INTERACTIVE ANALYTIC TOOL (Dropdown Sidebar Filter)
-    # ========================================================
-    st.sidebar.header("🛠️ Interactive Filter")
-    
-    # Membuat opsi "All States" agar pengguna bisa melihat semua data kembali dengan mudah
-    state_options = ["All States"] + list(df["State_ANSI"].astype(str).unique())
-    selected_state = st.sidebar.selectbox("Filter by State ANSI Code:", state_options)
-
-    # Filter dataset berdasarkan pilihan user secara real-time
-    if selected_state == "All States":
-        filtered_df = df.copy()
-    else:
-        filtered_df = df[df["State_ANSI"].astype(str) == selected_state]
-
-    # 3. Layout Grid (Split into 2 Columns for Data and Charts)
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("🔍 Dynamic Data Summary")
-        # Menampilkan tabel yang nilainya otomatis berubah sesuai filter dropdown
-        st.dataframe(filtered_df, use_container_width=True)
-            
+        st.subheader(f"🔍 {commodity_selected} Data Summary Table")
+        st.dataframe(df_sorted_desc, use_container_width=True)
+
     with col2:
-        st.subheader("📊 Dynamic Production Visualization")
+        st.subheader(f"📊 {current_config['title']}")
 
-        if not filtered_df.empty:
-            # Urutkan data secara menaik agar posisi grafik batang horizontal tersusun rapi dari bawah ke atas
-            df_sorted_asc = filtered_df.sort_values(by="total_milk", ascending=True)
+        df_sorted_asc = df.sort_values(by=val_col, ascending=True)
 
-            fig, ax = plt.subplots(figsize=(10, 5))
-            sns_style = sns_theme = "whitegrid" # Mencegah ketergantungan penuh pada fungsi seaborn
-            
-            # Format teks angka sumbu X menjadi format Miliaran ('B')
-            def format_billion(x, pos):
+        fig, ax = plt.subplots(figsize=(10, 5))
+        plt.style.use("seaborn-v0_8-whitegrid")
+
+        def format_axis(x, pos):
+            if x >= 1e9:
                 return f"{x*1e-9:.0f}B"
-            
-            from matplotlib.ticker import FuncFormatter
-            ax.xaxis.set_major_formatter(FuncFormatter(format_billion))
+            elif x >= 1e6:
+                return f"{x*1e-6:.0f}M"
+            return f"{x:,.0f}"
 
-            # Gambar grafik batang menggunakan Matplotlib murni (Sangat Stabil)
-            y_labels = df_sorted_asc["State_ANSI"].astype(str)
-            ax.barh(y_labels, df_sorted_asc["total_milk"], color="#1f77b4", edgecolor="none")
-            
-            ax.grid(axis='x', linestyle='--', alpha=0.7)
-            ax.set_axisbelow(True)
-            
-            ax.set_title(
-                f"Milk Production Volume - {selected_state} (USDA Data)",
-                fontsize=12,
-                weight="bold",
-            )
-            
-            plt.tight_layout()
-            st.pyplot(fig)
-        else:
-            st.warning("No visualization data available for the selected filter.")
-            
-        st.markdown("### 📈 Key Insight")
-        st.write("Based on the USDA analysis, Iowa (ANSI 19) leads total milk production, followed closely by Pennsylvania (ANSI 42).")
+        from matplotlib.ticker import FuncFormatter
+
+        ax.xaxis.set_major_formatter(FuncFormatter(format_axis))
+
+        y_labels = df_sorted_asc["State_ANSI"].astype(str)
+        ax.barh(
+            y_labels,
+            df_sorted_asc[val_col],
+            color=current_config["color"],
+            edgecolor="none",
+        )
+
+        ax.grid(axis="x", linestyle="--", alpha=0.7)
+        ax.set_axisbelow(True)
+
+        ax.set_title(
+            f"Top 5 States - {commodity_selected} Analysis (USDA Data)",
+            fontsize=12,
+            weight="bold",
+        )
+
+        plt.tight_layout()
+        st.pyplot(fig)
+
+        st.markdown("### 📈 Strategic Key Insight")
+        st.write(current_config["insight"])
 
 except Exception as e:
-    st.error(f"Failed to load dashboard components: {e}")
+    st.error(f"Please ensure all your commodity CSV files are added in the data/ folder. Error details: {e}")
