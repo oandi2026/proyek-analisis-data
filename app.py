@@ -25,10 +25,10 @@ with col1:
         df = pd.read_csv("data/top_5_milk_producers.csv")
         df.columns = df.columns.str.strip()
 
-        # Clean the 'Value' column numbers into decimals/floats
-        if "Value" in df.columns:
-            df["Value"] = (
-                df["Value"]
+        # Clean the 'total_milk' column numbers into floats
+        if "total_milk" in df.columns:
+            df["total_milk"] = (
+                df["total_milk"]
                 .astype(str)
                 .str.replace(",", "")
                 .astype(float)
@@ -43,9 +43,9 @@ with col1:
 with col2:
     st.subheader("📊 Milk Production Visualization")
 
-    if "df" in locals() and "Value" in df.columns and "State_ANSI" in df.columns:
+    if "df" in locals() and "total_milk" in df.columns and "State_ANSI" in df.columns:
         # Sort data ascending for a clean bottom-to-top layout on the horizontal bar chart
-        df_sorted_asc = df.sort_values(by="Value", ascending=True)
+        df_sorted_asc = df.sort_values(by="total_milk", ascending=True)
 
         # Build a highly stable horizontal bar chart using Matplotlib
         fig, ax = plt.subplots(figsize=(10, 5))
@@ -57,9 +57,9 @@ with col2:
         from matplotlib.ticker import FuncFormatter
         ax.xaxis.set_major_formatter(FuncFormatter(format_billion))
 
-        # We map State_ANSI to the y-axis, and Value to the x-axis
+        # We map State_ANSI to the y-axis, and total_milk to the x-axis
         y_labels = df_sorted_asc["State_ANSI"].astype(str)
-        ax.barh(y_labels, df_sorted_asc["Value"], color="#1f77b4", edgecolor="none")
+        ax.barh(y_labels, df_sorted_asc["total_milk"], color="#1f77b4", edgecolor="none")
         
         # Grid layout
         ax.grid(axis='x', linestyle='--', alpha=0.7)
@@ -74,6 +74,6 @@ with col2:
         plt.tight_layout()
         st.pyplot(fig)
         
-        # Keep the clean text insight nicely aligned under the chart
+        # Clean text insight nicely aligned under the chart
         st.markdown("### 📈 Key Insight")
-        st.write("California dominates U.S. milk production, contributing the largest share among all states.")
+        st.write("Based on the USDA analysis, Iowa (ANSI 19) leading total milk production, followed closely by Pennsylvania (ANSI 42).")
