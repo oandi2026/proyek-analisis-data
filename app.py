@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
 import streamlit as st
 
-# Page configuration 
+# Page configuration
 st.set_page_config(page_title="USDA Analysis", page_icon="📊", layout="wide")
 
 st.title("🌾 USDA Sales and Production Analysis")
@@ -27,7 +26,6 @@ with col1:
 
         if "Value" in df.columns:
             df = df.rename(columns={"Value": "Total_Milk_Production"})
-
         if "State_Name" in df.columns:
             df = df.rename(columns={"State_Name": "State"})
 
@@ -40,7 +38,6 @@ with col1:
             )
 
         st.dataframe(df, use_container_width=True)
-
     except Exception as e:
         st.error(f"Failed to load data: {e}")
 
@@ -48,32 +45,31 @@ with col2:
     st.subheader("📊 Milk Production Visualization")
 
     if "df" in locals():
+        # Sort data so the highest producer is at the top
+        df = df.sort_values(by="Total_Milk_Production", ascending=True)
 
-        df = df.sort_values(by="Total_Milk_Production", ascending=False)
-
+        # Build a safe, stable horizontal bar chart using Matplotlib directly
         fig, ax = plt.subplots(figsize=(10, 5))
-        sns.set_theme(style="whitegrid")
+        
+        # Format millions/billions on the x-axis
+        def format_billion(x, pos):
+            return f"{x*1e-9:.0f}B"
+        
+        from matplotlib.ticker import FuncFormatter
+        ax.xaxis.set_major_formatter(FuncFormatter(format_billion))
 
-        sns.barplot(
-            x="Total_Milk_Production",
-            y="State",       
-            data=df,
-            hue="State",       
-            palette="Blues_r",
-            legend=False,
-            ax=ax,
-        )
-
+        # Render bars safely
+        bars = ax.barh(df["State"], df["Total_Milk_Production"], color="#1f77b4", edgecolor="none")
+        
+        # Grid layout
+        ax.grid(axis='x', linestyle='--', alpha=0.7)
+        ax.set_axisbelow(True)
+        
         ax.set_title(
-            "Top U.S. Milk Producing States",
+            "Top U.S. Milk Producing States (USDA Data)",
             fontsize=12,
             weight="bold",
         )
-
+        
         plt.tight_layout()
         st.pyplot(fig)
-
-    else:
-        st.warning("Required columns not found in dataset.")
-
-
