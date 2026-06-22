@@ -44,8 +44,8 @@ This project analyzes U.S. agricultural production data (milk, cheese, coffee, h
 
 ## Data Visualization
 
-### 1. Data Visualization Main
-![Top 5 Milk Producers](data_visualization.png)
+### 1. Top 5 Milk Producers Chart
+![Top 5 Milk Producers](top_5_milk_producers.png)
 
 ### 2. Top 5 Honey Chart
 ![Top 5 Honey Chart](top_5_honey_chart.png)
