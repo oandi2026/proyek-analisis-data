@@ -72,3 +72,8 @@ with col2:
 
         plt.tight_layout()
         st.pyplot(fig)
+
+        else:
+        st.warning("Required columns not found in dataset.")
+
+
